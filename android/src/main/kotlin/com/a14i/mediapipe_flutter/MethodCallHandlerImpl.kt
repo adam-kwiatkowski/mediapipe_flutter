@@ -1,13 +1,12 @@
 package com.a14i.mediapipe_flutter
 
 import android.app.Activity
+import android.app.ActivityManager
 import android.content.Context
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import io.flutter.Log
@@ -36,6 +35,7 @@ class MethodCallHandlerImpl(
 
     private var methodChannel: MethodChannel
     private var resultsChannel: EventChannel
+    private var resultsHandler: ResultsHandler
 
     private var modelPath: String? = null
 
@@ -46,20 +46,19 @@ class MethodCallHandlerImpl(
         this.permissionsAdder = permissionsAdder
         this.flutterAssets = flutterAssets
 
+        this.resultsHandler = ResultsHandler()
+
         methodChannel = MethodChannel(messenger, "com.a14i.mediapipe_flutter")
         resultsChannel = EventChannel(messenger, "com.a14i.mediapipe_flutter/results")
 
         methodChannel.setMethodCallHandler(this)
+        resultsChannel.setStreamHandler(resultsHandler)
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
-            "getPlatformVersion" -> {
-                result.success("Something, idk")
-            }
-
             "initObjectDetector" -> {
-                var modelPath: String? = call.argument("modelPath")
+                val modelPath: String? = call.argument("modelPath")
                 if (modelPath == null) result.error("Missing argument", "modelName", "")
 
                 this.modelPath = flutterAssets.getAssetFilePathByName(modelPath!!)
@@ -99,11 +98,6 @@ class MethodCallHandlerImpl(
         cameraProviderFuture.addListener({
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
-            val previewView = PreviewView(applicationContext)
-            val preview = Preview.Builder().build().also {
-                it.setSurfaceProvider(previewView.surfaceProvider)
-            }
-
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
             val imageAnalyzer =
@@ -116,17 +110,18 @@ class MethodCallHandlerImpl(
 
             val backgroundExecutor = Executors.newSingleThreadExecutor()
 
+            val activityManager =
+                applicationContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val configurationInfo = activityManager.deviceConfigurationInfo
+            val gpuSupported = configurationInfo.reqGlEsVersion >= 0x30000
+            Log.d("MediaPipe Flutter", "GPU Supported: $gpuSupported")
+
             backgroundExecutor.execute {
                 val objectDetectorHelper = ObjectDetectorHelper(
                     context = applicationContext,
                     modelPath = modelPath!!,
-                    objectDetectorListener = ObjectDetectorListener(
-                        onErrorCallback = { _, _ -> },
-                        onResultsCallback = {
-                            Log.d("MediaPipe Flutter", "Inference took: ${it.inferenceTime}")
-                            Log.d("MediaPipe Flutter", "Results: ${it.results}")
-                        }
-                    )
+                    currentDelegate = ObjectDetectorHelper.DELEGATE_CPU,
+                    objectDetectorListener = resultsHandler
                 )
 
                 Log.d("MediaPipe Flutter", "Created objectDetector")

@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:mediapipe_flutter/detection.dart';
 
 import 'mediapipe_flutter_platform_interface.dart';
 
@@ -9,11 +12,8 @@ class MethodChannelMediapipeFlutter extends MediapipeFlutterPlatform {
   @visibleForTesting
   final methodChannel = const MethodChannel('com.a14i.mediapipe_flutter');
 
-  @override
-  Future<String?> getPlatformVersion() async {
-    final version = await methodChannel.invokeMethod<String>('getPlatformVersion');
-    return version;
-  }
+  @visibleForTesting
+  final eventChannel = const EventChannel('com.a14i.mediapipe_flutter/results');
 
   @override
   Future<String?> initCamera() async {
@@ -25,5 +25,15 @@ class MethodChannelMediapipeFlutter extends MediapipeFlutterPlatform {
   Future<String?> initModel(String modelPath) async {
     final version = await methodChannel.invokeMethod<String>('initObjectDetector', {'modelPath': modelPath});
     return version;
+  }
+
+  @override
+  Stream<ResultBundle?> get output {
+    return eventChannel.receiveBroadcastStream().map((event) {
+      final s = event as String;
+      final o = jsonDecode(s);
+      final bundle = ResultBundle.fromMap(o);
+      return bundle;
+    });
   }
 }

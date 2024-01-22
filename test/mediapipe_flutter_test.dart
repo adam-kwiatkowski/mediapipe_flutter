@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mediapipe_flutter/detection.dart';
 import 'package:mediapipe_flutter/mediapipe_flutter.dart';
 import 'package:mediapipe_flutter/mediapipe_flutter_platform_interface.dart';
 import 'package:mediapipe_flutter/mediapipe_flutter_method_channel.dart';
@@ -8,8 +9,24 @@ class MockMediapipeFlutterPlatform
     with MockPlatformInterfaceMixin
     implements MediapipeFlutterPlatform {
 
+  // @override
+  // Future<String?> getPlatformVersion() => Future.value('42');
+
   @override
-  Future<String?> getPlatformVersion() => Future.value('42');
+  Future<String?> initCamera() {
+    // TODO: implement initCamera
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<String?> initModel(String modelPath) {
+    // TODO: implement initModel
+    throw UnimplementedError();
+  }
+
+  @override
+  // TODO: implement output
+  Stream<ResultBundle?> get output => throw UnimplementedError();
 }
 
 void main() {
@@ -24,6 +41,6 @@ void main() {
     MockMediapipeFlutterPlatform fakePlatform = MockMediapipeFlutterPlatform();
     MediapipeFlutterPlatform.instance = fakePlatform;
 
-    expect(await mediapipeFlutterPlugin.getPlatformVersion(), '42');
+    // expect(await mediapipeFlutterPlugin.getPlatformVersion(), '42');
   });
 }

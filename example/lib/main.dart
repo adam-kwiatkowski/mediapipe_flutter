@@ -1,10 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:mediapipe_flutter/detection.dart';
 import 'package:mediapipe_flutter/mediapipe_flutter.dart';
+import 'package:mediapipe_flutter_example/widgets/detector_widget.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
   runApp(const MyApp());
 }
 
@@ -16,36 +17,11 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
-  String _callResult = 'Unknown';
   final _mediapipeFlutterPlugin = MediapipeFlutter();
 
   @override
   void initState() {
     super.initState();
-    initPlatformState();
-  }
-
-  // Platform messages are asynchronous, so we initialize in an async method.
-  Future<void> initPlatformState() async {
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    // We also handle the message potentially returning null.
-    try {
-      platformVersion = await _mediapipeFlutterPlugin.getPlatformVersion() ??
-          'Unknown platform version';
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
-
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
-
-    setState(() {
-      _platformVersion = platformVersion;
-    });
   }
 
   @override
@@ -58,19 +34,30 @@ class _MyAppState extends State<MyApp> {
         body: Center(
           child: Column(
             children: [
-              Text('Running on: $_platformVersion\n'),
+              const Text('Flutter Mediapipe'),
               ElevatedButton(
                   onPressed: () {
-                    var res = _mediapipeFlutterPlugin.initCamera();
-                    res.then((value) => setState(() {
-                          _callResult = value ?? 'Unknown call result';
-                        }));
+                    _mediapipeFlutterPlugin.initCamera();
                   },
                   child: const Text("Init camera")),
-              Text('Call result: $_callResult\n'),
-              ElevatedButton(onPressed: () {
-                _mediapipeFlutterPlugin.initModel("assets/model.tflite");
-              }, child: const Text("Init model"))
+              ElevatedButton(
+                  onPressed: () {
+                    _mediapipeFlutterPlugin.initModel("assets/model.tflite");
+                  },
+                  child: const Text("Init model")),
+              // StreamBuilder<ResultBundle?>(
+              //     stream: _mediapipeFlutterPlugin.output,
+              //     builder: (context, snapshot) {
+              //       if (snapshot.hasData) {
+              //         ResultBundle resultBundle = snapshot.data!;
+              //         return Text(
+              //             'Result: ${resultBundle.toString()}');
+              //       } else {
+              //         return const Text('No data');
+              //       }
+              //     }),
+
+              const DetectorWidget(),
             ],
           ),
         ),
